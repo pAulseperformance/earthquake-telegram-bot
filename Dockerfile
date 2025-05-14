@@ -6,15 +6,19 @@ WORKDIR /app
 # Copy package files for efficient layer caching
 COPY earthquake-notifier/package*.json ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm install && npm install -g typescript
+# Install dependencies without running the prepare script
+RUN npm install --ignore-scripts
 
-# Copy project files
-COPY earthquake-notifier/src ./src
+# Copy all project files
 COPY earthquake-notifier/tsconfig.json ./
+COPY earthquake-notifier/src ./src
 
-# Build the TypeScript project
-RUN npm run build
+# List files to verify they are copied correctly
+RUN ls -la && ls -la src/
+
+# Run TypeScript compiler explicitly
+RUN npx tsc
+
 
 # Production stage
 FROM node:16-alpine
@@ -25,11 +29,14 @@ WORKDIR /app
 COPY earthquake-notifier/package*.json ./
 
 # Install only production dependencies
-# --ignore-scripts prevents prepare/preinstall scripts from running
-RUN npm install --production --ignore-scripts
+# Skip the prepare script which would try to run build again
+RUN npm install --omit=dev --ignore-scripts
 
-# Copy built app from builder stage
+# Copy built app from builder stage (only copy once)
 COPY --from=builder /app/dist ./dist
+
+# Debug: List files to verify dist was copied correctly
+RUN ls -la && ls -la dist/ || echo "Dist directory not found or empty"
 
 # Create data directory for persisting subscriber data
 RUN mkdir -p data

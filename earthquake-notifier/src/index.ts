@@ -445,4 +445,5 @@ logger.info(`Earthquake notification service started. Scheduled to run every ${i
 logger.info('Bot is now listening for commands...');
 
 // Initial fetch
+console.log("Starting fetchAndNotify from index.ts");
 fetchAndNotify();
