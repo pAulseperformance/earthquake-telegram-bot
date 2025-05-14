@@ -1,48 +1,60 @@
 # Build stage
 FROM node:16-alpine AS builder
 
+# Add non-root user for build stage
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001 -G nodejs
+
 WORKDIR /app
 
+# Set ownership for the working directory
+RUN chown nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
 # Copy package files for efficient layer caching
-COPY earthquake-notifier/package*.json ./
+COPY --chown=nodejs:nodejs earthquake-notifier/package*.json ./
 
-# Install dependencies without running the prepare script
-RUN npm install --ignore-scripts
+# Install dependencies using npm ci for more reliable builds
+RUN npm ci --ignore-scripts
 
-# Copy all project files
-COPY earthquake-notifier/tsconfig.json ./
-COPY earthquake-notifier/src ./src
+# Copy project files
+COPY --chown=nodejs:nodejs earthquake-notifier/tsconfig.json ./
+COPY --chown=nodejs:nodejs earthquake-notifier/src ./src
 
-# List files to verify they are copied correctly
-RUN ls -la && ls -la src/
-
-# Run TypeScript compiler explicitly
+# Run TypeScript compiler
 RUN npx tsc
-
 
 # Production stage
 FROM node:16-alpine
 
+# Add non-root user for production
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001 -G nodejs
+
 WORKDIR /app
 
+# Set ownership for the working directory
+RUN chown nodejs:nodejs /app
+
 # Copy package files
-COPY earthquake-notifier/package*.json ./
+COPY --chown=nodejs:nodejs earthquake-notifier/package*.json ./
 
-# Install only production dependencies
-# Skip the prepare script which would try to run build again
-RUN npm install --omit=dev --ignore-scripts
+# Install production dependencies only
+RUN npm ci --omit=dev --ignore-scripts
 
-# Copy built app from builder stage (only copy once)
-COPY --from=builder /app/dist ./dist
+# Copy built app from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 
-# Debug: List files to verify dist was copied correctly
-RUN ls -la && ls -la dist/ || echo "Dist directory not found or empty"
+# Create data and logs directories
+RUN mkdir -p data logs && chown -R nodejs:nodejs data logs
 
-# Create data directory for persisting subscriber data
-RUN mkdir -p data
+# Switch to non-root user
+USER nodejs
 
 # Set environment variables
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=256" \
+    LOG_DIR=/app/logs
 
 # Expose port for health checks
 EXPOSE 8080

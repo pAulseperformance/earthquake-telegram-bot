@@ -64,16 +64,25 @@ export function log(level: LogLevel, message: string, data?: any): void {
     }
     
     // Also write to a local log file
-    const logDir = './logs';
+    const logDir = process.env.LOG_DIR || './logs';
     if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+      try {
+        fs.mkdirSync(logDir, { recursive: true });
+      } catch (err: any) {
+        console.error(`Failed to create log directory: ${err.message}`);
+        return; // Skip file logging but continue with console output
+      }
     }
     
     const logFile = `${logDir}/${new Date().toISOString().split('T')[0]}.log`;
-    fs.appendFileSync(
-      logFile, 
-      `[${timestamp}] [${level}] ${message} ${data ? JSON.stringify(data) : ''}\n`
-    );
+    try {
+      fs.appendFileSync(
+        logFile, 
+        `[${timestamp}] [${level}] ${message} ${data ? JSON.stringify(data) : ''}\n`
+      );
+    } catch (err: any) {
+      console.error(`Failed to write to log file: ${err.message}`);
+    }
   }
 }
 
