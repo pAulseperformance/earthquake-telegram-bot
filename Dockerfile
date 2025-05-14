@@ -7,7 +7,7 @@ WORKDIR /app
 COPY earthquake-notifier/package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm install
+RUN npm install && npm install -g typescript
 
 # Copy project files
 COPY earthquake-notifier/src ./src
@@ -25,7 +25,8 @@ WORKDIR /app
 COPY earthquake-notifier/package*.json ./
 
 # Install only production dependencies
-RUN npm install --production
+# --ignore-scripts prevents prepare/preinstall scripts from running
+RUN npm install --production --ignore-scripts
 
 # Copy built app from builder stage
 COPY --from=builder /app/dist ./dist
