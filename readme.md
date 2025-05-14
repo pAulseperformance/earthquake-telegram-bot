@@ -13,13 +13,15 @@ A Telegram bot that sends real-time earthquake notifications from USGS feeds. Us
 
 ## Supported Earthquake Categories
 
-- Significant earthquakes
-- Magnitude 4.5+
-- Magnitude 2.5+
-- Magnitude 1.0+
-- All earthquakes (including smaller ones)
+Users can subscribe to the following earthquake notification categories:
 
-Data source: [USGS Earthquake Feeds](https://earthquake.usgs.gov/earthquakes/feed/v1.0/atom.php)
+- **Significant earthquakes**: Only the most notable events (typically M6.0+ with significant impact)
+- **Magnitude 4.5+**: Moderate to large earthquakes that can be felt over wide areas
+- **Magnitude 2.5+**: Minor earthquakes that are often felt but rarely cause damage
+- **Magnitude 1.0+**: Very minor earthquakes, usually only detected by seismographs
+- **All earthquakes**: Every earthquake detected, including very small events
+
+Data is sourced from the [USGS Earthquake Feeds](https://earthquake.usgs.gov/earthquakes/feed/v1.0/atom.php), which are updated every 15 minutes.
 
 ## Available Commands
 
@@ -130,8 +132,8 @@ For persisting subscriber data when using Cloud Run:
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/earthquake-telegram.git
-   cd earthquake-telegram
+   git clone https://github.com/pAulseperformance/earthquake-telegram-bot.git
+   cd earthquake-telegram-bot
    ```
 
 2. Install dependencies
@@ -143,7 +145,10 @@ For persisting subscriber data when using Cloud Run:
 3. Set up environment variables
    ```bash
    cp .env.example .env
-   # Edit .env with your Telegram bot token and chat ID
+   # Edit .env file with your Telegram bot token and chat ID:
+   # TELEGRAM_BOT_TOKEN=your_bot_token_here
+   # TELEGRAM_CHAT_ID=your_chat_id_here
+   # NOTIFICATION_INTERVAL=15  # Minutes between checks
    ```
 
 4. Build TypeScript files
@@ -156,17 +161,95 @@ For persisting subscriber data when using Cloud Run:
    npm start
    ```
 
+6. Development mode with auto-reloading (alternative to steps 4-5)
+   ```bash
+   npm run dev
+   ```
+
+7. Access the health endpoint
+   ```
+   http://localhost:8080/health
+   ```
+
+### Interacting with the Bot
+
+Once your bot is running, you can interact with it through Telegram:
+
+1. Open Telegram and search for your bot by username
+2. Start a conversation with `/start`
+3. Subscribe to earthquake notifications with `/subscribe`
+4. Check your current subscription with `/status`
+5. Get the latest earthquakes with `/latest`
+6. Customize notification preferences with `/customize`
+
 ## Docker Compose for Local Testing
 
-Test the Docker setup locally before deploying:
+To test the Docker setup locally before deploying to GCP:
 
-```bash
-docker-compose up --build
-```
+1. Make sure Docker is installed and running on your machine
+
+2. Configure your environment variables
+   ```bash
+   cp earthquake-notifier/.env.example earthquake-notifier/.env
+   # Edit the .env file with your Telegram bot token and chat ID
+   ```
+
+3. Build and start the container
+   ```bash
+   docker-compose up --build
+   ```
+
+4. To run in detached mode (background)
+   ```bash
+   docker-compose up --build -d
+   ```
+
+5. Check logs when running in detached mode
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. Stop the container
+   ```bash
+   docker-compose down
+   ```
+
+7. Access the health endpoint
+   ```
+   http://localhost:8080/health
+   ```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Bot doesn't respond to commands**
+   - Verify your Telegram bot token in the `.env` file
+   - Make sure your bot is running (`npm start` shows no errors)
+   - Check if you've started a conversation with the bot on Telegram
+
+2. **Environment variables not loading**
+   - Ensure the `.env` file is in the correct location
+   - Check for syntax errors in your `.env` file
+   - Try running with explicit environment variables: `TELEGRAM_BOT_TOKEN=yourtoken npm start`
+
+3. **Error when building TypeScript files**
+   - Run `npm install` to make sure all dependencies are installed
+   - Check if TypeScript is installed (`npm list typescript`)
+   - Look for errors in your `tsconfig.json` file
+
+4. **Docker issues**
+   - Make sure Docker is running on your system
+   - Try building the image with `docker build -t earthquake-bot .`
+   - Check Docker logs for any errors
+
+### Viewing Logs
+
+Local logs are stored in the `earthquake-notifier/logs/` directory. The most recent log file will be named with the current date (e.g., `2025-05-14.log`).
 
 ## License
 
