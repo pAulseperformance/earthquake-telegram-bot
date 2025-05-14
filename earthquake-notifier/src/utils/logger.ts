@@ -1,0 +1,86 @@
+// Cloud logging utility for GCP deployments
+import fs from 'fs';
+
+// Log levels
+export enum LogLevel {
+  DEBUG = 'DEBUG',
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERROR'
+}
+
+interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  data?: any;
+}
+
+// Determine if we're in a GCP environment
+const isGcpEnvironment = process.env.K_SERVICE !== undefined || 
+  process.env.FUNCTION_NAME !== undefined ||
+  process.env.GAE_SERVICE !== undefined;
+
+/**
+ * Log a message with structured logging for GCP
+ */
+export function log(level: LogLevel, message: string, data?: any): void {
+  const timestamp = new Date().toISOString();
+  
+  const logEntry: LogEntry = {
+    timestamp,
+    level,
+    message
+  };
+  
+  if (data) {
+    logEntry.data = data;
+  }
+
+  // Format for structured logging in GCP
+  if (isGcpEnvironment) {
+    // Format for Cloud Logging
+    const gcpLog = {
+      severity: level,
+      message,
+      time: timestamp,
+      ...data
+    };
+    console.log(JSON.stringify(gcpLog));
+  } else {
+    // Local development logging
+    const color = {
+      [LogLevel.DEBUG]: '\x1b[36m', // Cyan
+      [LogLevel.INFO]: '\x1b[32m',  // Green
+      [LogLevel.WARN]: '\x1b[33m',  // Yellow
+      [LogLevel.ERROR]: '\x1b[31m', // Red
+    };
+    
+    const reset = '\x1b[0m';
+    console.log(`${color[level]}[${timestamp}] [${level}]${reset} ${message}`);
+    
+    if (data) {
+      console.log(data);
+    }
+    
+    // Also write to a local log file
+    const logDir = './logs';
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    
+    const logFile = `${logDir}/${new Date().toISOString().split('T')[0]}.log`;
+    fs.appendFileSync(
+      logFile, 
+      `[${timestamp}] [${level}] ${message} ${data ? JSON.stringify(data) : ''}\n`
+    );
+  }
+}
+
+// Helper methods for each log level
+export const logger = {
+  debug: (message: string, data?: any) => log(LogLevel.DEBUG, message, data),
+  info: (message: string, data?: any) => log(LogLevel.INFO, message, data),
+  warn: (message: string, data?: any) => log(LogLevel.WARN, message, data),
+  error: (message: string, data?: any) => log(LogLevel.ERROR, message, data),
+};

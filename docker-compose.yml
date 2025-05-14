@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  earthquake-bot:
+    build: .
+    image: gcr.io/${PROJECT_ID}/earthquake-bot:latest
+    restart: always
+    volumes:
+      - subscriber-data:/app/data
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', res => res.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  subscriber-data:

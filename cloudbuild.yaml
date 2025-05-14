@@ -1,0 +1,42 @@
+# Cloud Build configuration file for automated deployments
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/earthquake-bot:$COMMIT_SHA', '.']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/earthquake-bot:$COMMIT_SHA']
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'earthquake-bot'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/earthquake-bot:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--min-instances'
+      - '1'
+
+  # Tag the image with 'latest'
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'gcr.io/$PROJECT_ID/earthquake-bot:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/earthquake-bot:latest']
+
+  # Push the 'latest' tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/earthquake-bot:latest']
+
+images:
+  - 'gcr.io/$PROJECT_ID/earthquake-bot:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/earthquake-bot:latest'
+
+timeout: '1800s'
